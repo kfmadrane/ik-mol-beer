@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, RefreshCw, Volume2 } from 'lucide-react';
+import { useAudio } from '@/hooks/useAudio';
 
 type Word = { id: string; text: string; audioPath: string | null };
 type Letter = { id: string; symbol: string; audioPath: string | null };
@@ -41,6 +42,7 @@ export default function PastingLettersGame() {
   const [selectedLetters, setSelectedLetters] = useState<{ id: string; symbol: string }[]>([]);
   const [isSuccess, setIsSuccess] = useState(false);
   const [round, setRound] = useState(1);
+  const { play: playAudioTrack, stop, isPlaying } = useAudio();
 
   const MAX_ROUNDS = 20;
 
@@ -59,6 +61,8 @@ export default function PastingLettersGame() {
 
   const pickRandomWord = (wordList = words, letterList = allLetters, currentRound = round + 1) => {
     if (wordList.length === 0 || letterList.length === 0) return;
+
+    stop(); // Prevent audio overlap
 
     if (currentRound > MAX_ROUNDS) {
       setRound(currentRound);
@@ -88,7 +92,7 @@ export default function PastingLettersGame() {
     
     if (randomWord.audioPath) {
       setTimeout(() => {
-        new Audio(randomWord.audioPath!).play().catch(e => console.error("Autoplay prevented:", e));
+        playAudioTrack(randomWord.audioPath!);
       }, 500);
     }
   };
@@ -97,7 +101,7 @@ export default function PastingLettersGame() {
     if (isSuccess) return;
 
     if (letter.audioPath) {
-      new Audio(letter.audioPath).play();
+      new Audio(letter.audioPath).play(); // We don't track small letter pings
     }
 
     setSelectedLetters(prev => {
@@ -119,7 +123,7 @@ export default function PastingLettersGame() {
       setIsSuccess(true);
       if (currentWord.audioPath) {
         setTimeout(() => {
-          new Audio(currentWord.audioPath!).play();
+          playAudioTrack(currentWord.audioPath!);
         }, 500);
       }
     }
@@ -161,7 +165,7 @@ export default function PastingLettersGame() {
       <div className="flex-1 flex flex-col items-center justify-center w-full max-w-2xl">
         
         <button 
-          onClick={() => currentWord.audioPath && new Audio(currentWord.audioPath).play()} 
+          onClick={() => currentWord.audioPath && playAudioTrack(currentWord.audioPath)} 
           className="mb-12 bg-white p-8 rounded-full shadow-lg hover:bg-purple-100 hover:scale-110 transition-all border-4 border-purple-200"
         >
           <Volume2 size={64} className="text-purple-600" />
@@ -172,7 +176,7 @@ export default function PastingLettersGame() {
             <button
               key={letter.id}
               onClick={() => handleRemoveLetter(index)}
-              className={`w-16 h-16 sm:w-20 sm:h-20 rounded-xl text-4xl sm:text-5xl font-bold text-white shadow-md transition-all ${isSuccess ? 'bg-green-500 cursor-default scale-110' : 'bg-purple-500 hover:scale-95'}`}
+              className={`w-16 h-16 sm:w-20 sm:h-20 rounded-xl text-4xl sm:text-5xl font-bold lowercase text-white shadow-md transition-all ${isSuccess ? 'bg-green-500 cursor-default scale-110' : 'bg-purple-500 hover:scale-95'}`}
               disabled={isSuccess}
             >
               {letter.symbol}
@@ -182,8 +186,12 @@ export default function PastingLettersGame() {
 
         {isSuccess && (
           <div className="mb-8 animate-bounce">
-            <button onClick={() => pickRandomWord()} className="bg-green-500 text-white px-8 py-4 rounded-full text-xl font-bold hover:bg-green-600 shadow-lg">
-              Volgende Woord! ➜
+            <button 
+              onClick={() => pickRandomWord()} 
+              disabled={isPlaying}
+              className={`text-white px-8 py-4 rounded-full text-xl font-bold shadow-lg transition-colors ${isPlaying ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}`}
+            >
+              {isPlaying ? 'Luister...' : 'Volgende Woord! ➜'}
             </button>
           </div>
         )}
@@ -193,7 +201,7 @@ export default function PastingLettersGame() {
             <button
               key={`${letter.id}-${i}`}
               onClick={() => handleSelectLetter(letter as Letter, i)}
-              className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-xl text-4xl sm:text-5xl font-bold text-gray-700 shadow-md hover:bg-purple-50 hover:-translate-y-1 transition-all border-b-4 border-gray-200"
+              className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-xl text-4xl sm:text-5xl font-bold lowercase text-gray-700 shadow-md hover:bg-purple-50 hover:-translate-y-1 transition-all border-b-4 border-gray-200"
             >
               {letter.symbol}
             </button>

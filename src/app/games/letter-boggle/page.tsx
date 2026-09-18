@@ -117,7 +117,7 @@ export default function LetterBoggleGame() {
         
         {/* Game Board */}
         <div className="flex flex-col items-center bg-white p-8 rounded-3xl shadow-lg">
-          <div className="h-16 mb-4 flex items-center justify-center text-4xl font-bold text-pink-600 tracking-widest min-w-[200px] border-b-4 border-gray-200 pb-2 uppercase">
+          <div className="h-16 mb-4 flex items-center justify-center text-4xl font-bold text-pink-600 tracking-widest min-w-[200px] border-b-4 border-gray-200 pb-2 lowercase">
             {currentWord || '-'}
           </div>
 
@@ -128,7 +128,7 @@ export default function LetterBoggleGame() {
                 <button
                   key={i}
                   onClick={() => handleSelect(i)}
-                  className={`w-24 h-24 sm:w-28 sm:h-28 rounded-2xl text-5xl font-bold uppercase shadow-md transition-all ${
+                  className={`w-24 h-24 sm:w-28 sm:h-28 rounded-2xl text-5xl font-bold lowercase shadow-md transition-all ${
                     isSelected
                       ? 'bg-pink-500 text-white scale-95 shadow-none'
                       : 'bg-white border-2 border-gray-200 text-gray-700 hover:bg-pink-50 hover:-translate-y-1'
@@ -161,7 +161,7 @@ export default function LetterBoggleGame() {
             )}
             {wordsFound.map((item, i) => (
               <div key={i} className={`flex items-center justify-between p-3 rounded-xl border-2 ${item.isValid ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-                <span className="text-xl font-bold uppercase text-gray-800">{item.word}</span>
+                <span className="text-xl font-bold lowercase text-gray-800">{item.word}</span>
                 {item.isValid ? (
                   <CheckCircle2 className="text-green-500" size={24} />
                 ) : (

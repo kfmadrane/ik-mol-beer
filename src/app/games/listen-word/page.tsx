@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, RefreshCw, Volume2 } from 'lucide-react';
+import { useAudio } from '@/hooks/useAudio';
 
 type Word = { id: string; text: string; imagePath: string | null; audioPath: string | null };
 
@@ -13,13 +14,13 @@ export default function ListenWordGame() {
   const [round, setRound] = useState(1);
   const [isSuccess, setIsSuccess] = useState(false);
   const [wrongAttempts, setWrongAttempts] = useState<string[]>([]);
+  const { play, stop, isPlaying } = useAudio();
   const MAX_ROUNDS = 20;
 
   useEffect(() => {
     fetch('/api/words')
       .then(res => res.json())
       .then(data => {
-        // Filter out words that don't have audio
         const validWords = data.filter((w: Word) => w.audioPath);
         setWords(validWords);
         if (validWords.length > 0) pickRandomWord(validWords, 1);
@@ -29,8 +30,10 @@ export default function ListenWordGame() {
   const pickRandomWord = (wordList = words, currentRound = round + 1) => {
     if (wordList.length < 4) return;
     
+    stop();
+
     if (currentRound > MAX_ROUNDS) {
-      setRound(currentRound); // Trigger game over
+      setRound(currentRound);
       return;
     }
 
@@ -47,10 +50,9 @@ export default function ListenWordGame() {
     setOptions([...distractors, randomWord].sort(() => Math.random() - 0.5));
     if (currentRound !== 1) setRound(currentRound);
 
-    // Play sound automatically after a short delay
     setTimeout(() => {
       if (randomWord.audioPath) {
-        new Audio(randomWord.audioPath).play().catch(e => console.log("Autoplay blocked"));
+        play(randomWord.audioPath);
       }
     }, 500);
   };
@@ -61,7 +63,7 @@ export default function ListenWordGame() {
     if (word.id === currentWord?.id) {
       setIsSuccess(true);
       if (currentWord?.audioPath) {
-        new Audio(currentWord.audioPath).play();
+        play(currentWord.audioPath);
       }
     } else {
       setWrongAttempts(prev => [...prev, word.id]);
@@ -105,9 +107,9 @@ export default function ListenWordGame() {
         
         <button 
           onClick={() => {
-            if (currentWord.audioPath) new Audio(currentWord.audioPath).play();
+            if (currentWord.audioPath) play(currentWord.audioPath);
           }}
-          className="w-48 h-48 bg-rose-500 rounded-full shadow-2xl flex flex-col items-center justify-center hover:bg-rose-600 hover:scale-105 transition-all mb-12 border-8 border-rose-200 animate-pulse"
+          className={`w-48 h-48 rounded-full shadow-2xl flex flex-col items-center justify-center transition-all mb-12 border-8 border-rose-200 ${isPlaying ? 'bg-rose-400 scale-110' : 'bg-rose-500 hover:bg-rose-600 hover:scale-105'}`}
         >
           <Volume2 size={80} className="text-white" />
         </button>
@@ -124,7 +126,7 @@ export default function ListenWordGame() {
                 key={word.id}
                 onClick={() => handleSelect(word)}
                 disabled={isWrong || isSuccess}
-                className={`h-32 rounded-3xl text-4xl sm:text-5xl font-bold uppercase shadow-lg transition-all border-b-8 ${
+                className={`h-32 rounded-3xl text-4xl sm:text-5xl font-bold lowercase shadow-lg transition-all border-b-8 ${
                   isCorrect 
                     ? 'bg-green-500 text-white border-green-600 scale-105'
                     : isWrong
@@ -142,9 +144,10 @@ export default function ListenWordGame() {
           <div className="mt-12 animate-bounce">
             <button 
               onClick={() => pickRandomWord()}
-              className="bg-green-500 text-white px-8 py-4 rounded-full text-2xl font-bold hover:bg-green-600 shadow-xl"
+              disabled={isPlaying}
+              className={`text-white px-8 py-4 rounded-full text-2xl font-bold shadow-xl transition-colors ${isPlaying ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}`}
             >
-              Volgende ➜
+              {isPlaying ? 'Luister...' : 'Volgende ➜'}
             </button>
           </div>
         )}

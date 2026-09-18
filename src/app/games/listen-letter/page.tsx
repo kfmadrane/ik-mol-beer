@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, RefreshCw, Volume2 } from 'lucide-react';
+import { useAudio } from '@/hooks/useAudio';
 
 type Letter = { id: string; symbol: string; audioPath: string | null };
 
@@ -13,13 +14,13 @@ export default function ListenLetterGame() {
   const [round, setRound] = useState(1);
   const [isSuccess, setIsSuccess] = useState(false);
   const [wrongAttempts, setWrongAttempts] = useState<string[]>([]);
+  const { play, stop, isPlaying } = useAudio();
   const MAX_ROUNDS = 20;
 
   useEffect(() => {
     fetch('/api/letters')
       .then(res => res.json())
       .then(data => {
-        // Filter out letters that don't have audio
         const validLetters = data.filter((l: Letter) => l.audioPath);
         setLetters(validLetters);
         if (validLetters.length > 0) pickRandomLetter(validLetters, 1);
@@ -29,8 +30,10 @@ export default function ListenLetterGame() {
   const pickRandomLetter = (letterList = letters, currentRound = round + 1) => {
     if (letterList.length < 4) return;
     
+    stop();
+
     if (currentRound > MAX_ROUNDS) {
-      setRound(currentRound); // Trigger game over
+      setRound(currentRound);
       return;
     }
 
@@ -47,10 +50,9 @@ export default function ListenLetterGame() {
     setOptions([...distractors, randomLetter].sort(() => Math.random() - 0.5));
     if (currentRound !== 1) setRound(currentRound);
 
-    // Play sound automatically after a short delay
     setTimeout(() => {
       if (randomLetter.audioPath) {
-        new Audio(randomLetter.audioPath).play().catch(e => console.log("Autoplay blocked"));
+        play(randomLetter.audioPath);
       }
     }, 500);
   };
@@ -61,7 +63,7 @@ export default function ListenLetterGame() {
     if (letter.id === currentLetter?.id) {
       setIsSuccess(true);
       if (currentLetter?.audioPath) {
-        new Audio(currentLetter.audioPath).play();
+        play(currentLetter.audioPath);
       }
     } else {
       setWrongAttempts(prev => [...prev, letter.id]);
@@ -105,9 +107,9 @@ export default function ListenLetterGame() {
         
         <button 
           onClick={() => {
-            if (currentLetter.audioPath) new Audio(currentLetter.audioPath).play();
+            if (currentLetter.audioPath) play(currentLetter.audioPath);
           }}
-          className="w-48 h-48 bg-teal-500 rounded-full shadow-2xl flex flex-col items-center justify-center hover:bg-teal-600 hover:scale-105 transition-all mb-12 border-8 border-teal-200 animate-pulse"
+          className={`w-48 h-48 rounded-full shadow-2xl flex flex-col items-center justify-center transition-all mb-12 border-8 border-teal-200 ${isPlaying ? 'bg-teal-400 scale-110' : 'bg-teal-500 hover:bg-teal-600 hover:scale-105'}`}
         >
           <Volume2 size={80} className="text-white" />
         </button>
@@ -124,7 +126,7 @@ export default function ListenLetterGame() {
                 key={letter.id}
                 onClick={() => handleSelect(letter)}
                 disabled={isWrong || isSuccess}
-                className={`h-32 rounded-3xl text-6xl font-bold uppercase shadow-lg transition-all border-b-8 ${
+                className={`h-32 rounded-3xl text-6xl font-bold lowercase shadow-lg transition-all border-b-8 ${
                   isCorrect 
                     ? 'bg-green-500 text-white border-green-600 scale-105'
                     : isWrong
@@ -142,9 +144,10 @@ export default function ListenLetterGame() {
           <div className="mt-12 animate-bounce">
             <button 
               onClick={() => pickRandomLetter()}
-              className="bg-green-500 text-white px-8 py-4 rounded-full text-2xl font-bold hover:bg-green-600 shadow-xl"
+              disabled={isPlaying}
+              className={`text-white px-8 py-4 rounded-full text-2xl font-bold shadow-xl transition-colors ${isPlaying ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}`}
             >
-              Volgende ➜
+              {isPlaying ? 'Luister...' : 'Volgende ➜'}
             </button>
           </div>
         )}

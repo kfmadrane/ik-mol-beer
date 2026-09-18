@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Eye, RefreshCw, Volume2 } from 'lucide-react';
+import { useAudio } from '@/hooks/useAudio';
 
 type Letter = { id: string; symbol: string; audioPath: string | null };
 
@@ -13,6 +14,7 @@ export default function FlashLettersGame() {
   const [isFlashing, setIsFlashing] = useState(false);
   const [isRevealed, setIsRevealed] = useState(false);
   const [round, setRound] = useState(1);
+  const { play, stop, isPlaying } = useAudio();
   const MAX_ROUNDS = 20;
 
   useEffect(() => {
@@ -27,6 +29,8 @@ export default function FlashLettersGame() {
   const pickRandomLetter = (letterList = letters, currentRound = round + 1) => {
     if (letterList.length === 0) return;
     
+    stop();
+
     if (currentRound > MAX_ROUNDS) {
       setRound(currentRound);
       return;
@@ -53,7 +57,7 @@ export default function FlashLettersGame() {
   const handleReveal = () => {
     setIsRevealed(true);
     if (currentLetter?.audioPath) {
-      new Audio(currentLetter.audioPath).play();
+      play(currentLetter.audioPath);
     }
   };
 
@@ -93,7 +97,7 @@ export default function FlashLettersGame() {
       <div className="flex-1 flex flex-col items-center justify-center w-full">
         {isFlashing ? (
           <div className="flex items-center justify-center w-64 h-64 bg-white rounded-full shadow-2xl animate-pulse transform scale-110">
-            <span className="text-9xl font-bold text-orange-500 uppercase">{currentLetter.symbol}</span>
+            <span className="text-9xl font-bold text-orange-500 lowercase">{currentLetter.symbol}</span>
           </div>
         ) : !isRevealed ? (
           <div className="flex flex-col items-center">
@@ -102,25 +106,18 @@ export default function FlashLettersGame() {
               className="w-64 h-64 bg-orange-500 rounded-full shadow-2xl flex flex-col items-center justify-center hover:bg-orange-600 hover:scale-105 transition-all mb-12 border-8 border-orange-200"
             >
               <Eye size={64} className="text-white mb-4" />
-              <span className="text-2xl font-bold text-white uppercase">Kijk Na</span>
+              <span className="text-2xl font-bold text-white lowercase">Kijk Na</span>
             </button>
             <p className="text-xl text-gray-500 mb-12">Zeg het hardop en controleer het daarna.</p>
-
-            <button 
-              onClick={() => pickRandomLetter()}
-              className="bg-white text-orange-500 px-8 py-4 rounded-full text-xl font-bold hover:bg-orange-50 shadow-md border-2 border-orange-200"
-            >
-              Volgende ➜
-            </button>
           </div>
         ) : (
           <div className="flex flex-col items-center">
             <div className="flex items-center justify-center w-64 h-64 bg-white rounded-full shadow-xl border-8 border-green-200 mb-8">
-              <span className="text-9xl font-bold text-green-500 uppercase">{currentLetter.symbol}</span>
+              <span className="text-9xl font-bold text-green-500 lowercase">{currentLetter.symbol}</span>
             </div>
             
             {currentLetter.audioPath && (
-              <button onClick={() => new Audio(currentLetter.audioPath!).play()} className="mb-8 text-blue-500 hover:text-blue-600 bg-blue-50 p-4 rounded-full">
+              <button onClick={() => play(currentLetter.audioPath!)} className="mb-8 text-blue-500 hover:text-blue-600 bg-blue-50 p-4 rounded-full">
                 <Volume2 size={48} />
               </button>
             )}
@@ -128,15 +125,10 @@ export default function FlashLettersGame() {
             <div className="flex gap-4">
               <button 
                 onClick={() => pickRandomLetter()}
-                className="bg-green-500 text-white px-8 py-4 rounded-full text-xl font-bold hover:bg-green-600 shadow-lg"
+                disabled={isPlaying}
+                className={`text-white px-8 py-4 rounded-full text-xl font-bold shadow-lg transition-colors ${isPlaying ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}`}
               >
-                Volgende Letter! ➜
-              </button>
-              <button 
-                onClick={() => pickRandomLetter(letters, round)}
-                className="bg-gray-200 text-gray-600 px-8 py-4 rounded-full text-xl font-bold hover:bg-gray-300 shadow-sm"
-              >
-                Nog eens oefenen
+                {isPlaying ? 'Luister...' : 'Volgende Letter! ➜'}
               </button>
             </div>
           </div>

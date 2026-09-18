@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, RefreshCw, Volume2 } from 'lucide-react';
+import { useAudio } from '@/hooks/useAudio';
 
 type Word = { id: string; text: string; imagePath: string | null; audioPath: string | null };
 type Letter = { id: string; symbol: string; audioPath: string | null };
@@ -41,6 +42,7 @@ export default function PictureWordGame() {
   const [spelledLetters, setSpelledLetters] = useState<{ id: number; symbol: string }[]>([]);
   const [isSuccess, setIsSuccess] = useState(false);
   const [round, setRound] = useState(1);
+  const { play: playAudioTrack, stop, isPlaying } = useAudio();
   const MAX_ROUNDS = 20;
 
   useEffect(() => {
@@ -59,8 +61,10 @@ export default function PictureWordGame() {
   const pickRandomWord = (wordList = words, letterList = allLetters, currentRound = round + 1) => {
     if (wordList.length === 0 || letterList.length === 0) return;
     
+    stop(); // Stop any currently playing audio
+
     if (currentRound > MAX_ROUNDS) {
-      setRound(currentRound); // Trigger game over
+      setRound(currentRound);
       return;
     }
 
@@ -108,7 +112,7 @@ export default function PictureWordGame() {
 
   const playAudio = () => {
     if (currentWord?.audioPath) {
-      new Audio(currentWord.audioPath).play();
+      playAudioTrack(currentWord.audioPath);
     }
   };
 
@@ -166,7 +170,7 @@ export default function PictureWordGame() {
             <button
               key={letter.id}
               onClick={() => handleRemoveLetter(letter)}
-              className={`min-w-[4rem] px-4 h-16 sm:min-w-[5rem] sm:h-20 rounded-xl text-4xl sm:text-5xl font-bold text-white shadow-md transition-all ${isSuccess ? 'bg-green-500 cursor-default scale-110' : 'bg-blue-500 hover:scale-95'}`}
+              className={`min-w-[4rem] px-4 h-16 sm:min-w-[5rem] sm:h-20 rounded-xl text-4xl sm:text-5xl font-bold lowercase text-white shadow-md transition-all ${isSuccess ? 'bg-green-500 cursor-default scale-110' : 'bg-blue-500 hover:scale-95'}`}
               disabled={isSuccess}
             >
               {letter.symbol}
@@ -180,8 +184,12 @@ export default function PictureWordGame() {
 
         {isSuccess && (
           <div className="mb-8 animate-bounce">
-            <button onClick={() => pickRandomWord()} className="bg-green-500 text-white px-8 py-4 rounded-full text-xl font-bold hover:bg-green-600 shadow-lg">
-              Volgende Woord! ➜
+            <button 
+              onClick={() => pickRandomWord()} 
+              disabled={isPlaying}
+              className={`text-white px-8 py-4 rounded-full text-xl font-bold shadow-lg transition-colors ${isPlaying ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}`}
+            >
+              {isPlaying ? 'Luister...' : 'Volgende Woord! ➜'}
             </button>
           </div>
         )}
@@ -191,7 +199,7 @@ export default function PictureWordGame() {
             <button
               key={letter.id}
               onClick={() => handleSelectLetter(letter)}
-              className="min-w-[4rem] px-4 h-16 sm:min-w-[5rem] sm:h-20 bg-white rounded-xl text-4xl sm:text-5xl font-bold text-gray-700 shadow-md hover:bg-blue-50 hover:-translate-y-1 transition-all border-b-4 border-gray-200"
+              className="min-w-[4rem] px-4 h-16 sm:min-w-[5rem] sm:h-20 bg-white rounded-xl text-4xl sm:text-5xl font-bold lowercase text-gray-700 shadow-md hover:bg-blue-50 hover:-translate-y-1 transition-all border-b-4 border-gray-200"
             >
               {letter.symbol}
             </button>
