@@ -53,7 +53,10 @@ export default function AdminLetters() {
     setLoading(true);
     const formData = new FormData();
     formData.append('symbol', symbol);
-    if (audio) formData.append('audio', audio, 'audio.webm');
+    if (audio) {
+      const ext = audio.type.includes('mp4') || audio.type.includes('aac') ? 'mp4' : 'webm';
+      formData.append('audio', audio, `audio.${ext}`);
+    }
 
     try {
       const url = editingId ? `/api/letters/${editingId}` : '/api/letters';

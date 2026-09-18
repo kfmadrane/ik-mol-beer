@@ -2,8 +2,8 @@ FROM node:22-slim
 
 WORKDIR /app
 
-# Install OpenSSL (needed for Prisma engine)
-RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+# Install OpenSSL (needed for Prisma engine) and ffmpeg (needed for audio transcoding)
+RUN apt-get update -y && apt-get install -y openssl ffmpeg && rm -rf /var/lib/apt/lists/*
 
 # Copy package dependency manifests
 COPY package.json package-lock.json ./

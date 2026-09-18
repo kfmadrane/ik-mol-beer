@@ -69,7 +69,10 @@ export default function AdminWords() {
     const formData = new FormData();
     formData.append('text', text);
     if (image) formData.append('image', image);
-    if (audio) formData.append('audio', audio, 'audio.webm');
+    if (audio) {
+      const ext = audio.type.includes('mp4') || audio.type.includes('aac') ? 'mp4' : 'webm';
+      formData.append('audio', audio, `audio.${ext}`);
+    }
 
     try {
       const url = editingId ? `/api/words/${editingId}` : '/api/words';

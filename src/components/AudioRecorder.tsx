@@ -27,7 +27,18 @@ export default function AudioRecorder({ onRecordingComplete, onClear }: AudioRec
       }
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+
+      let mimeType = 'audio/webm';
+      if (typeof MediaRecorder.isTypeSupported === 'function') {
+        if (MediaRecorder.isTypeSupported('audio/mp4') && (/iPhone|iPad|iPod|Macintosh/i.test(navigator.userAgent) || !MediaRecorder.isTypeSupported('audio/webm'))) {
+          mimeType = 'audio/mp4';
+        } else if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+          mimeType = 'audio/webm';
+        }
+      }
+
+      const options = mimeType && MediaRecorder.isTypeSupported(mimeType) ? { mimeType } : undefined;
+      const mediaRecorder = options ? new MediaRecorder(stream, options) : new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
@@ -38,7 +49,8 @@ export default function AudioRecorder({ onRecordingComplete, onClear }: AudioRec
       };
 
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const actualType = mediaRecorder.mimeType || mimeType || 'audio/webm';
+        const audioBlob = new Blob(audioChunksRef.current, { type: actualType });
         const url = URL.createObjectURL(audioBlob);
         setAudioUrl(url);
         onRecordingComplete(audioBlob);
