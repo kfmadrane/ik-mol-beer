@@ -33,5 +33,11 @@
     "prisma": "^5.22.0",
     "tailwindcss": "^4",
     "typescript": "^5"
-  }
+  },
+  "browserslist": [
+    "> 0.2%",
+    "not dead",
+    "ios >= 15",
+    "safari >= 15"
+  ]
 }

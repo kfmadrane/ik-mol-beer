@@ -1,12 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
-
-const AudioRecorder = dynamic(() => import('@/components/AudioRecorder'), { 
-  ssr: false,
-  loading: () => <div className="p-4 bg-gray-50 border rounded-md text-gray-400">Laden recorder...</div>
-});
+import AudioRecorder from '@/components/AudioRecorder';
 
 type Letter = { id: string; symbol: string; audioPath: string | null };
 
@@ -22,9 +17,20 @@ export default function AdminLetters() {
   }, []);
 
   const fetchLetters = async () => {
-    const res = await fetch('/api/letters');
-    const data = await res.json();
-    setLetters(data);
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const res = await fetch(`/api/letters?t=${Date.now()}`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setLetters(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch letters:', err);
+    }
   };
 
   const handleEdit = (letter: Letter) => {

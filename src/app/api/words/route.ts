@@ -3,14 +3,27 @@ import { prisma } from '@/lib/prisma';
 import { uploadFile } from '@/lib/minio';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
-export async function GET() {
+export async function GET(request: Request) {
+  const ua = request.headers.get('user-agent') || 'unknown';
+  const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'direct';
+  console.log(`[API /api/words] Client: ${ua.slice(0, 70)} | IP: ${ip}`);
+
   try {
     const words = await prisma.word.findMany({
       orderBy: { text: 'asc' },
     });
-    return NextResponse.json(words);
+    console.log(`[API /api/words] Returning ${words.length} words to client`);
+    return NextResponse.json(words, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    });
   } catch (error) {
+    console.error('[API /api/words] Error:', error);
     return NextResponse.json({ error: 'Failed to fetch words' }, { status: 500 });
   }
 }

@@ -1,12 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
-
-const AudioRecorder = dynamic(() => import('@/components/AudioRecorder'), { 
-  ssr: false,
-  loading: () => <div className="p-4 bg-gray-50 border rounded-md text-gray-400">Laden recorder...</div>
-});
+import AudioRecorder from '@/components/AudioRecorder';
 
 type Word = { id: string; text: string; imagePath: string | null; audioPath: string | null };
 
@@ -17,15 +12,38 @@ export default function AdminWords() {
   const [audio, setAudio] = useState<Blob | null>(null);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [fetchLoading, setFetchLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchWords();
   }, []);
 
   const fetchWords = async () => {
-    const res = await fetch('/api/words');
-    const data = await res.json();
-    setWords(data);
+    setFetchLoading(true);
+    setFetchError(null);
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const res = await fetch(`/api/words?t=${Date.now()}`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status} (${res.statusText || 'Error'})`);
+      }
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setWords(data);
+      } else {
+        throw new Error('Server returned invalid data: ' + JSON.stringify(data));
+      }
+    } catch (err: any) {
+      console.error('Failed to fetch words:', err);
+      setFetchError(err.name === 'AbortError' ? 'Timeout bij verbinding (duurde te lang)' : (err.message || 'Kon woorden niet laden'));
+    } finally {
+      setFetchLoading(false);
+    }
   };
 
   const handleEdit = (word: Word) => {
@@ -146,6 +164,35 @@ export default function AdminWords() {
       </form>
 
       <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+        <div className="p-6 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <h3 className="text-xl font-black text-slate-800">Woordenlijst ({words.length})</h3>
+            {fetchLoading && <span className="text-sm font-medium text-blue-600 animate-pulse">Laden...</span>}
+          </div>
+          <button
+            type="button"
+            onClick={fetchWords}
+            disabled={fetchLoading}
+            className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-sm rounded-xl transition-all"
+          >
+            🔄 Vernieuwen
+          </button>
+        </div>
+
+        {fetchError && (
+          <div className="p-4 bg-red-100 border-b border-red-300 text-red-800 flex items-center justify-between">
+            <div>
+              <strong>Fout bij ophalen woorden:</strong> {fetchError}
+            </div>
+            <button
+              onClick={fetchWords}
+              className="px-3 py-1 bg-red-600 text-white rounded-lg text-sm font-bold"
+            >
+              Opnieuw proberen
+            </button>
+          </div>
+        )}
+
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-slate-50 border-b-2 border-slate-200 text-slate-600">

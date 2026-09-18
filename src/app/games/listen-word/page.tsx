@@ -18,7 +18,7 @@ export default function ListenWordGame() {
   const MAX_ROUNDS = 20;
 
   useEffect(() => {
-    fetch('/api/words')
+    fetch(`/api/words?t=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
         const validWords = data.filter((w: Word) => w.audioPath);

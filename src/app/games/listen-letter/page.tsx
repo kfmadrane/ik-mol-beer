@@ -18,7 +18,7 @@ export default function ListenLetterGame() {
   const MAX_ROUNDS = 20;
 
   useEffect(() => {
-    fetch('/api/letters')
+    fetch(`/api/letters?t=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
         const validLetters = data.filter((l: Letter) => l.audioPath);

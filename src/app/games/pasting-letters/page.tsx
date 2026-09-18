@@ -48,8 +48,8 @@ export default function PastingLettersGame() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/words').then(res => res.json()),
-      fetch('/api/letters').then(res => res.json())
+      fetch(`/api/words?t=${Date.now()}`).then(res => res.json()),
+      fetch(`/api/letters?t=${Date.now()}`).then(res => res.json())
     ]).then(([wordsData, lettersData]) => {
       setWords(wordsData);
       setAllLetters(lettersData);

@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   minio:
-    image: minio/minio
+    image: quay.io/minio/minio
     container_name: radiant_turing_minio
     ports:
       - "9000:9000"
@@ -13,6 +11,31 @@ services:
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ik-mol-beer:latest
+    container_name: radiant_turing_app
+    ports:
+      - "13000:13000"
+    environment:
+      - NODE_ENV=production
+      - PORT=13000
+      - HOSTNAME=0.0.0.0
+      - DATABASE_URL=file:/app/prisma/dev.db
+      - MINIO_ENDPOINT=minio
+      - MINIO_PORT=9000
+      - MINIO_USE_SSL=false
+      - MINIO_ACCESS_KEY=admin
+      - MINIO_SECRET_KEY=password123
+    depends_on:
+      - minio
+    volumes:
+      - ./prisma:/app/prisma
+    restart: unless-stopped
 
 volumes:
   minio_data:
