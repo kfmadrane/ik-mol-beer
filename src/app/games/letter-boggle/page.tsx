@@ -15,7 +15,7 @@ export default function LetterBoggleGame() {
   const [isGameOver, setIsGameOver] = useState(false);
 
   useEffect(() => {
-    fetch('/api/letters')
+    fetch(`/api/letters?t=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
         setLetters(data);
