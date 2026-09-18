@@ -58,8 +58,23 @@ export async function GET(
     const resolvedParams = await params;
     const filename = resolvedParams.filename;
 
-    // Get the object stream from MinIO
-    const dataStream = await minioClient.getObject(BUCKET_NAME, filename);
+    let actualFilename = filename;
+    let dataStream;
+    try {
+      dataStream = await minioClient.getObject(BUCKET_NAME, actualFilename);
+    } catch (err) {
+      if (filename.endsWith('.webm')) {
+        const fallbackMp3 = filename.replace(/\.webm$/, '.mp3');
+        try {
+          dataStream = await minioClient.getObject(BUCKET_NAME, fallbackMp3);
+          actualFilename = fallbackMp3;
+        } catch {
+          throw err;
+        }
+      } else {
+        throw err;
+      }
+    }
 
     const chunks: any[] = [];
     for await (const chunk of dataStream) {

@@ -70,8 +70,7 @@ export default function AdminWords() {
     formData.append('text', text);
     if (image) formData.append('image', image);
     if (audio) {
-      const ext = audio.type.includes('mp4') || audio.type.includes('aac') ? 'mp4' : 'webm';
-      formData.append('audio', audio, `audio.${ext}`);
+      formData.append('audio', audio, 'audio.mp3');
     }
 
     try {

@@ -41,15 +41,67 @@ export async function initializeMinio() {
   }
 }
 
+import { spawn } from 'child_process';
+
+export function convertToMp3(inputBuffer: Buffer): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const ffmpeg = spawn('ffmpeg', [
+      '-i', 'pipe:0',
+      '-f', 'mp3',
+      '-acodec', 'libmp3lame',
+      '-ab', '128k',
+      'pipe:1',
+    ]);
+
+    const stdoutChunks: Buffer[] = [];
+    const stderrChunks: Buffer[] = [];
+
+    ffmpeg.stdout.on('data', (chunk) => stdoutChunks.push(chunk));
+    ffmpeg.stderr.on('data', (chunk) => stderrChunks.push(chunk));
+
+    ffmpeg.stdin.on('error', () => {});
+
+    ffmpeg.on('close', (code) => {
+      if (code === 0) {
+        resolve(Buffer.concat(stdoutChunks));
+      } else {
+        const stderrMsg = Buffer.concat(stderrChunks).toString();
+        reject(new Error(`ffmpeg exited with code ${code}: ${stderrMsg}`));
+      }
+    });
+
+    ffmpeg.on('error', reject);
+    ffmpeg.stdin.end(inputBuffer);
+  });
+}
+
 export async function uploadFile(file: File, prefix: string): Promise<string> {
   await initializeMinio();
   
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const ext = file.name.split('.').pop() || 'webm';
+  let buffer: Buffer = Buffer.from(await file.arrayBuffer());
+  let ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
+  let mimeType = file.type || 'application/octet-stream';
+
+  const isAudio =
+    file.type.startsWith('audio/') ||
+    ['webm', 'mp4', 'm4a', 'wav', 'ogg', 'aac', 'mp3'].includes(ext) ||
+    prefix.includes('_aud_') ||
+    prefix.startsWith('letter_');
+
+  if (isAudio) {
+    try {
+      buffer = await convertToMp3(buffer);
+      ext = 'mp3';
+      mimeType = 'audio/mpeg';
+    } catch (err) {
+      console.error('FFmpeg transcoding to MP3 failed during upload:', err);
+    }
+  }
+
   const filename = `${prefix}_${Date.now()}.${ext}`;
   
   await minioClient.putObject(BUCKET_NAME, filename, buffer, buffer.length, {
-    'Content-Type': file.type || 'application/octet-stream',
+    'Content-Type': mimeType,
   });
   
   // Return the proxy URL instead of direct MinIO URL so it works on any device
